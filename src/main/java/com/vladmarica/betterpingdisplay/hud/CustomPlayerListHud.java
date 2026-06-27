@@ -2,11 +2,11 @@ package com.vladmarica.betterpingdisplay.hud;
 
 import com.vladmarica.betterpingdisplay.BetterPingDisplayMod;
 import com.vladmarica.betterpingdisplay.Config;
-import com.vladmarica.betterpingdisplay.mixin.PlayerListHudInvoker;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.hud.PlayerListHud;
-import net.minecraft.client.network.PlayerListEntry;
+import com.vladmarica.betterpingdisplay.mixin.PlayerTabOverlayAccessor;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.PlayerTabOverlay;
+import net.minecraft.client.multiplayer.PlayerInfo;
 
 public final class CustomPlayerListHud {
   private static final int PING_TEXT_RENDER_OFFSET = -13;
@@ -14,9 +14,16 @@ public final class CustomPlayerListHud {
   private static final Config config = BetterPingDisplayMod.instance().getConfig();
 
   public static void renderPingDisplay(
-      MinecraftClient client, PlayerListHud hud, DrawContext context, int width, int x, int y, PlayerListEntry player) {
-    String pingString = String.format(config.getTextFormatString(), player.getLatency());
-    int pingStringWidth = client.textRenderer.getWidth(pingString);
+      Minecraft client, PlayerTabOverlay hud, GuiGraphicsExtractor graphics, int width, int x, int y, PlayerInfo player) {
+    String pingString;
+    if (player.getLatency() == 0) {
+      // Use the configured placeholder (prefixed with the formatting color code) for null/0ms pings.
+      pingString = config.getNullPingPlaceholderColor() + config.getNullPingPlaceholder();
+    } else {
+      pingString = String.format(config.getTextFormatString(), player.getLatency());
+    }
+
+    int pingStringWidth = client.font.width(pingString);
     int pingTextColor = config.shouldAutoColorPingText()
         ? PingColors.getColor(player.getLatency()) : config.getTextColor().getRGB();
     int textX = width + x - pingStringWidth + PING_TEXT_RENDER_OFFSET;
@@ -26,10 +33,10 @@ public final class CustomPlayerListHud {
     }
 
     // Draw the ping text for the given player
-    context.drawTextWithShadow(client.textRenderer, pingString, textX, y, pingTextColor);
+    graphics.text(client.font, pingString, textX, y, pingTextColor, true);
 
     if (config.shouldRenderPingBars()) {
-      ((PlayerListHudInvoker) hud).invokeRenderLatencyIcon(context, width, x, y, player);
+      ((PlayerTabOverlayAccessor) hud).invokeRenderLatencyIcon(graphics, width, x, y, player);
     }
   }
 }

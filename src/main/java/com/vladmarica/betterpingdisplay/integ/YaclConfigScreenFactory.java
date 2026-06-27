@@ -6,16 +6,18 @@ import com.vladmarica.betterpingdisplay.Config;
 import dev.isxander.yacl3.api.*;
 import dev.isxander.yacl3.api.controller.BooleanControllerBuilder;
 import dev.isxander.yacl3.api.controller.ColorControllerBuilder;
+import dev.isxander.yacl3.api.controller.CyclingListControllerBuilder;
 import dev.isxander.yacl3.api.controller.StringControllerBuilder;
-import dev.isxander.yacl3.gui.controllers.string.StringController;
-import net.minecraft.client.gui.screen.Screen;
-
 import java.awt.Color;
 import java.io.IOException;
-import java.util.function.Predicate;
+import java.util.Arrays;
+import java.util.Locale;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 import static com.vladmarica.betterpingdisplay.BetterPingDisplayMod.LOGGER;
-import static net.minecraft.text.Text.translatable;
+import static net.minecraft.network.chat.Component.translatable;
 
 public class YaclConfigScreenFactory implements ConfigScreenFactory<Screen> {
 
@@ -51,7 +53,6 @@ public class YaclConfigScreenFactory implements ConfigScreenFactory<Screen> {
                         config::getTextFormatString,
                         config::setTextFormatString)
                 .controller(StringControllerBuilder::create)
-                .customController((o) -> new ValidatedStringController(o, (s) -> s.contains("%d")))
                 .build();
 
         Option<Boolean> renderPingBarsOption = Option.<Boolean>createBuilder()
@@ -64,6 +65,24 @@ public class YaclConfigScreenFactory implements ConfigScreenFactory<Screen> {
                 .controller(o -> BooleanControllerBuilder.create(o).coloured(true))
                 .build();
 
+        Option<String> nullPingPlaceholderOption = Option.<String>createBuilder()
+                .name(translatable("betterpingdisplay.settings.nullPingPlaceholder"))
+                .description(OptionDescription.of(translatable("betterpingdisplay.settings.nullPingPlaceholder.description")))
+                .binding(Config.DEFAULT_NULL_PING_PLACEHOLDER, config::getNullPingPlaceholder, config::setNullPingPlaceholder)
+                .controller(StringControllerBuilder::create)
+                .build();
+
+        Option<ChatFormatting> nullPingPlaceholderColorOption = Option.<ChatFormatting>createBuilder()
+                .name(translatable("betterpingdisplay.settings.nullPingPlaceholderColor"))
+                .description(OptionDescription.of(translatable("betterpingdisplay.settings.nullPingPlaceholderColor.description")))
+                .binding(Config.DEFAULT_NULL_PING_PLACEHOLDER_COLOR, config::getNullPingPlaceholderColor, config::setNullPingPlaceholderColor)
+                .controller(opt -> CyclingListControllerBuilder.create(opt)
+                        .values(Arrays.stream(ChatFormatting.values())
+                                .filter(ChatFormatting::isColor)
+                                .toList())
+                        .formatValue(v -> Component.translatable("betterpingdisplay.formatting." + v.getName().toLowerCase(Locale.ROOT))))
+                .build();
+
         return YetAnotherConfigLib.createBuilder()
                 .title(translatable("betterpingdisplay.settings.title"))
                 .category(ConfigCategory.createBuilder()
@@ -72,6 +91,8 @@ public class YaclConfigScreenFactory implements ConfigScreenFactory<Screen> {
                         .option(pingTextColorOption)
                         .option(textFormatOption)
                         .option(renderPingBarsOption)
+                        .option(nullPingPlaceholderOption)
+                        .option(nullPingPlaceholderColorOption)
                         .build())
                 .save(() -> {
                     try {
@@ -82,19 +103,5 @@ public class YaclConfigScreenFactory implements ConfigScreenFactory<Screen> {
                 })
                 .build()
                 .generateScreen(parent);
-    }
-
-    private static class ValidatedStringController extends StringController {
-        private final Predicate<String> validator;
-
-        public ValidatedStringController(Option<String> option, Predicate<String> validator) {
-            super(option);
-            this.validator = validator;
-        }
-
-        @Override
-        public boolean isInputValid(String input) {
-            return validator.test(input);
-        }
     }
 }

@@ -2,7 +2,6 @@ package com.vladmarica.betterpingdisplay;
 
 import com.google.gson.*;
 import com.google.gson.annotations.Expose;
-
 import java.awt.Color;
 import java.io.File;
 import java.io.FileReader;
@@ -10,14 +9,20 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Type;
+import java.util.Locale;
+import net.minecraft.ChatFormatting;
 
 public class Config {
   private static final int DEFAULT_PING_TEXT_COLOR = 0xFFA0A0A0;
   private static final String DEFAULT_PING_TEXT_FORMAT = "%dms";
 
+  public static final String DEFAULT_NULL_PING_PLACEHOLDER = "N/A";
+  public static final ChatFormatting DEFAULT_NULL_PING_PLACEHOLDER_COLOR = ChatFormatting.GRAY;
+
   private static final Gson gson = new GsonBuilder()
           .setPrettyPrinting()
           .registerTypeAdapter(Color.class, new ColorJsonAdapter())
+          .registerTypeAdapter(ChatFormatting.class, new ChatFormattingAdapter())
           .create();
 
   private final ConfigData data;
@@ -27,6 +32,9 @@ public class Config {
 
     if (!data.pingTextFormatString.contains("%d")) {
       data.pingTextFormatString = DEFAULT_PING_TEXT_FORMAT;
+    }
+    if (data.nullPingPlaceholderColor == null) {
+      data.nullPingPlaceholderColor = DEFAULT_NULL_PING_PLACEHOLDER_COLOR;
     }
   }
 
@@ -62,6 +70,22 @@ public class Config {
     data.renderPingBars = shouldRenderPingBars;
   }
 
+  public String getNullPingPlaceholder() {
+    return data.nullPingPlaceholder;
+  }
+
+  public void setNullPingPlaceholder(String nullPingPlaceholder) {
+    data.nullPingPlaceholder = nullPingPlaceholder;
+  }
+
+  public ChatFormatting getNullPingPlaceholderColor() {
+    return data.nullPingPlaceholderColor;
+  }
+
+  public void setNullPingPlaceholderColor(ChatFormatting nullPingPlaceholderColor) {
+    data.nullPingPlaceholderColor = nullPingPlaceholderColor;
+  }
+
   public void writeToFile(File file) throws IOException {
     try (FileWriter writer = new FileWriter(file)) {
       writer.write(gson.toJson(data));
@@ -90,6 +114,12 @@ public class Config {
 
     @Expose
     private String pingTextFormatString = DEFAULT_PING_TEXT_FORMAT;
+
+    @Expose
+    private String nullPingPlaceholder = DEFAULT_NULL_PING_PLACEHOLDER;
+
+    @Expose
+    private ChatFormatting nullPingPlaceholderColor = DEFAULT_NULL_PING_PLACEHOLDER_COLOR;
   }
 
   private static class ColorJsonAdapter implements JsonDeserializer<Color>, JsonSerializer<Color> {
@@ -103,6 +133,25 @@ public class Config {
     @Override
     public JsonElement serialize(Color src, Type typeOfSrc, JsonSerializationContext context) {
       return new JsonPrimitive(String.format("#%02x%02x%02x", src.getRed(), src.getGreen(), src.getBlue()));
+    }
+  }
+
+  private static class ChatFormattingAdapter
+          implements JsonDeserializer<ChatFormatting>, JsonSerializer<ChatFormatting> {
+    @Override
+    public ChatFormatting deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+            throws JsonParseException {
+      String colorName = json.getAsString();
+      ChatFormatting formatting = ChatFormatting.getByName(colorName.toLowerCase(Locale.ROOT));
+      if (formatting == null || !formatting.isColor()) {
+        return DEFAULT_NULL_PING_PLACEHOLDER_COLOR;
+      }
+      return formatting;
+    }
+
+    @Override
+    public JsonElement serialize(ChatFormatting src, Type typeOfSrc, JsonSerializationContext context) {
+      return new JsonPrimitive(src.getName());
     }
   }
 }
