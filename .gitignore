@@ -4,4 +4,5 @@ out/
 .idea/
 run/
 logs/
+bin/
 src/main/java/net/fabricmc/*
