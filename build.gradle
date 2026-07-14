@@ -22,7 +22,7 @@ dependencies {
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 	implementation("com.terraformersmc:modmenu:${project.modmenu_version}")
 	implementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
-	testImplementation 'junit:junit:4.13'
+	testImplementation 'junit:junit:4.13.1'
 }
 
 processResources {
@@ -39,8 +39,8 @@ java {
 	targetCompatibility = JavaVersion.VERSION_25
 }
 
-tasks.withType(JavaCompile) {
-	options.encoding = "UTF-8"
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
 }
 
 tasks.withType(JavaCompile).configureEach {
