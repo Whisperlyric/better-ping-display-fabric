@@ -1,6 +1,5 @@
 build/
 .gradle/
-out/
 .idea/
 run/
 logs/
